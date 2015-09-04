@@ -1,0 +1,16 @@
+body {
+    font-family: arial, sans-serif;
+}
+
+#scorepad input {
+    width: 30px;
+}
+
+#scorepad .ser input,
+#scorepad .sub input {
+    width: 50px;
+}
+
+#scorepad input.total {
+    width: 110px;
+}
