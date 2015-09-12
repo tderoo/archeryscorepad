@@ -7,16 +7,38 @@ var archeryModule = angular.module('archery', []); // Definition of the module
 archeryModule.service('scoringService', [
 function () {
    var service = {
-      calcScore : calcScore   
+       calcScore: calcScore,
+       scoringMethod: scoringMethod
    }
 
    /////////// implementation /////////////
 
-   var scoring = { Description: 'Normal scoring', M: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10, X: 10 }
+   // Possible scoring methods 
+   var scoringMethods = [
+       { Name: 'Normaal', M: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10, X: 10 },
+       { Name: 'Rozenkoning', 10: 10, X: 10 },
+       { Name: 'Omgekeerd', 1: 10, 2: 9, 3: 8, 4: 7, 5: 6, 6: 5, 7: 4, 8: 3, 9: 2, 10: 1, X: 1 },
+       { Name: 'Troostprijs', M: 10, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10, X: 10 },
+       { Name: 'Deelbaar door 3',  3: 3, 6: 6, 9: 9 },
+       { Name: 'Priemgetallen', 2: 2, 3: 3, 5: 5, 7: 7 },
+       { Name: 'Onevenwichtig', 1: 2, 2: 2, 3: 6, 4: 4, 5: 10, 6: 6, 7: 14, 8: 8, 9: 18, 10: 10, X: 10 },
+       { Name: 'Kruisvaarder', 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10, X: 20 },
+       { Name: 'Fibonachi', 1: 1, 2: 1, 3: 2, 4: 3, 5: 5, 6: 8, 7: 13, 8: 21, 9: 34, 10: 55, X: 55 },
+       { Name: 'Negatief', 1: -1, 2: -2, 3: -3, 4: -4, 5: -5, 6: -6, 7: -7, 8: -8, 9: -9, 10: -10, X: -10 }
+   ]
 
-   function calcScore(input) {
-       if (input) input = input.toUpperCase(); // make sure lookup is case insensitive
-       return scoring[input] || 0; // return matching score or zero if not matched
+   // get default scoring method or the one indicated by the method number
+   function scoringMethod(methodNumber) {
+       var scoringMethod = scoringMethods[methodNumber || 0]; // default to first scoring method
+       if (!scoringMethod) return  scoringMethods[0]; // if unknown then return default scoring method
+       return scoringMethod;
+   }
+
+   // calculate the score for a given user input with the specified scoring method
+   function calcScore(scoreInput, method) {
+       if (!method) method = scoringMethod(); // get default scoring method if undefined
+       if (scoreInput) scoreInput = scoreInput.toUpperCase(); // make sure lookup is case insensitive
+       return method[scoreInput] || 0; // return matching score or zero if not matched
    }
 
    return service;
@@ -39,7 +61,7 @@ function ($q) {
     }
 
     function ageGroups() {
-        return $q.when(['Aspirant', 'Junior', 'Senior']); // async return age groups
+        return $q.when(['Aspirant', 'Junior', 'Senior', 'Master']); // async return age groups
     }
 
     function bowTypes() {
@@ -88,22 +110,27 @@ function ($q, scoringService) {
         return $q.when(scoreCard); // return a populated score card structure async
     }
 
-    function calcScore(scoreCard) {
+    // Recalculated the scores on the score card (optionally use alternative scoring methods)
+    function calcScore(scoreCard, useAlternativeScoring) {
         var totalScore = 0;
         var subTotal = 0;
         var xCount = 0;
 
         _.each(scoreCard.Series, function (serie, index) {
-
+            // Set serie total based on user inputs
+            var scoringMethod = scoringService.scoringMethod(useAlternativeScoring ? index+1 : null);
+            serie.ScoringMethod = scoringMethod;
             serie.SerieTotal = _.reduce(serie.Serie, function(sum, score) {
-                return sum + scoringService.calcScore(score.Score);
+                return sum + scoringService.calcScore(score.Score, scoringMethod);
             }, 0);
 
+            // Count number of X scores
             serie.XCount = _.filter(serie.Serie, function(x) {
-                return /X/i.test(x.Score); // is this an X score?
+                return /^X$/i.test(x.Score); // is this an X score?
             }).length;
             xCount += serie.XCount;
 
+            // Calculate sub-total for every second row (covering two lines)
             subTotal += serie.SerieTotal;
             if (index % 2 === 1) { // only calculate subtotal for even lines
                 serie.SubTotal = subTotal;
@@ -112,13 +139,13 @@ function ($q, scoringService) {
 
             totalScore += serie.SerieTotal;
         })
-
+        // Update the total score and number of X-es
         scoreCard.TotalScore = totalScore;
         scoreCard.XCount = xCount;
     }
 
     function saveScore(scoreCard) {
-        console.log(scoreCard) // todo implement actual scoring
+        console.log(angular.toJson(scoreCard)) // todo implement actual scoring
         alert('Score saved (to implement)');
     }
 

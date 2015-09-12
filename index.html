@@ -63,6 +63,7 @@
             <td>3</td>
             <td colspan="2">subtotalen</td>
             <td>X</td>
+            <td>Method</td>
         </tr>
         </thead>
         <tbody>
@@ -81,6 +82,9 @@
                 <td>
                     {{serie.XCount}}
                 </td>
+                <td>
+                    {{serie.ScoringMethod.Name}}
+                </td>
             </tr>
             <tr class="totals">
                 <td colspan="5"><label>Totaal:</label></td>
@@ -89,6 +93,8 @@
             </tr>
         </tbody>
     </table>
+    <button ng-click="calcScore(ScoreCard,false)">Normale Score</button>
+    <button ng-click="calcScore(ScoreCard,true)">Alternatieve Score</button>
     <button ng-click="saveScore(ScoreCard)">Invoeren</button>
 </body>
 </html>
