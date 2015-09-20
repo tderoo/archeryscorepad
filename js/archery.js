@@ -1,19 +1,30 @@
 // Angular module to implement scorecard and sccoring services. This would normally be split into 
 // multiple source files but for ease of editing and illustration I've kept them together for now
 
-var archeryModule = angular.module('archery', []); // Definition of the module 
+var archeryModule = angular.module('archery', ['ngRoute']); // Definition of the module 
+
+// Configuring the basic angular url routes for the GameResult and the ScoreCard pages
+archeryModule.config([
+'$routeProvider',
+function($routeProvider) {
+    $routeProvider.when('/', {
+        controller: 'gameResultController',
+        templateUrl: 'templates/gameResult.html'
+    }).when('/scorecard', {
+        controller: 'scoreCardController',
+        templateUrl: 'templates/scoreCard.html'
+    }).when('/scorecard/:id', {
+        controller: 'scoreCardController',
+        templateUrl: 'templates/scoreCard.html'
+    }).otherwise({
+        redirectTo: '/'
+    });
+}])
 
 // Scoring service can determine the numeric score for a given input 
-archeryModule.service('scoringService', [
+archeryModule.factory('scoringService', [
 function () {
-   var service = {
-       calcScore: calcScore,
-       scoringMethod: scoringMethod
-   }
-
-   /////////// implementation /////////////
-
-   // Possible scoring methods 
+   // Supported scoring methods 
    var scoringMethods = [
        { Name: 'Normaal', M: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10, X: 10 },
        { Name: 'Rozenkoning', 10: 10, X: 10 },
@@ -26,6 +37,15 @@ function () {
        { Name: 'Fibonachi', 1: 1, 2: 1, 3: 2, 4: 3, 5: 5, 6: 8, 7: 13, 8: 21, 9: 34, 10: 55, X: 55 },
        { Name: 'Negatief', 1: -1, 2: -2, 3: -3, 4: -4, 5: -5, 6: -6, 7: -7, 8: -8, 9: -9, 10: -10, X: -10 }
    ]
+
+   var service = {
+       calcScore: calcScore,
+       scoringMethod: scoringMethod
+   }
+
+   return service;
+
+   /////////// implementation /////////////
 
    // get default scoring method or the one indicated by the method number
    function scoringMethod(methodNumber) {
@@ -41,18 +61,19 @@ function () {
        return method[scoreInput] || 0; // return matching score or zero if not matched
    }
 
-   return service;
 }])
 
 // Service for typical lookup information (already implemented as async even though it is not yet needed)
-archeryModule.service('lookupService', [
+archeryModule.factory('lookupService', [
 '$q',
 function ($q) {
     var service = {
         distances: distances,
         ageGroups: ageGroups,
-        bowTypes: bowTypes
+        bowTypes: bowTypes,
+        gameCategories: gameCategories
     }
+    return service;
 
     /////////// implementation /////////////
 
@@ -68,23 +89,97 @@ function ($q) {
         return $q.when(['Recurve', 'Compound', 'Barebow', 'Traditioneel/hout']); // async return bow types
     }
 
-    return service;
+    function gameCategories() {
+        return $q.when([
+            { Id: 1, Name: "Junioren (18m)" },
+            { Id: 2, Name: "Senioren (25m)" }
+        ]);
+    }
+
 }])
+
+archeryModule.factory('scoreCardRepository',['$q',
+function($q) {
+    var repos = {
+        query: query,
+        get: get,
+        save: save,
+        remove: remove
+    }
+    /////////// implementation /////////////
+
+    var storageKey = 'Archery';
+    var scoreCards = JSON.parse(window.localStorage[storageKey] || '[]');
+
+    function updateLocalStorage() {
+        window.localStorage[storageKey] = JSON.stringify(angular.toJson(scoreCards));
+    }
+
+    //Get all stored scoreCards
+    function query() {
+        return $q.when(scoreCards);
+    }
+
+    // Get the scorecard with a given Id
+    function get(id) {
+        return query().then(function(result) {
+            var scoreCard = _.find(result, function (x) { return x.Id === id });
+            return $q.when(scoreCard);
+        })
+    }
+
+    // Save (or update) the current ScoreCard
+    function save(scoreCard) {
+        var index = _.findIndex(scoreCards, function (x) { return x.Id === scoreCard.Id; });
+        if (index == -1) {
+            scoreCard.Id = _.max(scoreCards, function(x) { return x.Id; }) + 1; // generate Id
+            scoreCards.push(scoreCard); // Add            
+        }
+        else scoreCards[index] = scoreCard; // Update
+        updateLocalStorage();
+        return $q.when(scoreCard);
+    }
+
+    function remove(scoreCard) {
+        var index = _.findIndex(scoreCards, function (x) { return x.Id === scoreCard.Id; });
+        if (index) {
+            scoreCards.splice(index, 1);
+            updateLocalStorage();
+        }
+        return $q.when();
+    }
+
+    return repos;
+}
+])
 
 // The service which is responsible for creating (and later loading and saving) score cards
 archeryModule.service('scoreCardService', [
-'$q', 'scoringService',
-function ($q, scoringService) {
+'$q', 'scoringService', 'scoreCardRepository',
+function ($q, scoringService, scoreCardRepository) {
     var service = {
+        query: query,
+        get: get,
         create: create,
-        calcScore: calcScore,
-        saveScore: saveScore
+        save: save,
+        calcScore: calcScore
     }
 
     /////////// implementation /////////////
 
+    function query() {
+        return scoreCardRepository.query();
+    }
+
+    function get(id) {
+        return scoreCardRepository.get(id);
+    }
+
+    // Create new ScoreCard object
     function create(maxSeries) {
         var scoreCard = {
+            Id: null,
+            GameCategory: null,
             Player: {
                 Name: null,
                 AgeGroup: null,
@@ -97,7 +192,7 @@ function ($q, scoringService) {
             XCount: null,
         }
         // Populate the Series in the scorecard 
-        for (var i = 0; i < (maxSeries || 12); i++) {
+        for (var i = 0; i < (maxSeries || 10); i++) {
             scoreCard.Series.push({
                 No: (i + 1) * 3,
                 Serie: [{ Score: null }, { Score: null }, { Score: null }],
@@ -144,9 +239,10 @@ function ($q, scoringService) {
         scoreCard.XCount = xCount;
     }
 
-    function saveScore(scoreCard) {
-        console.log(angular.toJson(scoreCard)) // todo implement actual scoring
-        alert('Score saved (to implement)');
+    function save(scoreCard) {
+        return scoreCardRepository.save(scoreCard);
+        //console.log(angular.toJson(scoreCard)) // todo implement actual scoring
+        //alert('Score saved (to implement)');
     }
 
     return service;
@@ -155,21 +251,58 @@ function ($q, scoringService) {
 // Score card page controller which contains all the information to fill in a scorecard and calculate scores
 // This could be used as a stand-alone page later
 archeryModule.controller('scoreCardController', [
-'$scope', '$q', 'scoreCardService', 'lookupService',
-function ($scope, $q, scoreCardService, lookupService) {
+'$scope', '$routeParams', '$q', 'scoreCardService', 'lookupService',
+function ($scope, $routeParams, $q, scoreCardService, lookupService) {
 
-    $q.all([lookupService.distances(), lookupService.ageGroups(), lookupService.bowTypes()])
+    $q.all([lookupService.distances(),
+            lookupService.ageGroups(),
+            lookupService.bowTypes(),
+            lookupService.gameCategories()])
         .then(function(results) {
             $scope.Distances = results[0];
             $scope.AgeGroups = results[1];
             $scope.BowTypes = results[2];
+            $scope.GameCategories = results[3];
         });
 
-    scoreCardService.create(10)
-        .then(function(scoreCard) {
-            $scope.ScoreCard = scoreCard;
-        })
+    // If a ScoreCard id is passed in the route string then load this card
+    if ($routeParams.id) {
+        scoreCardService.get($routeParams.id)
+            .then(function(scoreCard) {
+                $scope.ScoreCard = scoreCard;
+            });
+    } else {   
+        scoreCardService.create(10)
+            .then(function(scoreCard) {
+                $scope.ScoreCard = scoreCard;
+            })
+    }
 
     $scope.calcScore = scoreCardService.calcScore;
-    $scope.saveScore = scoreCardService.saveScore;
+    $scope.saveScore = scoreCardService.save;
+}])
+
+// ranking page controller which shows the winner scorecard for each
+archeryModule.controller('gameResultController', [
+'$scope', 'scoreCardService',
+function ($scope, scoreCardService) {
+    $scope.ScoreCards = [];
+    $scope.GameCategories = [];
+    $scope.categoryScoreCards = categoryScoreCards;
+
+    scoreCardService.query().then(function(scoreCards) {
+        $scope.ScoreCards = scoreCards;
+        var gameCategories = [];
+        _.each(scoreCards,function(scoreCard) {
+            if (!_.contains(gameCategories, scoreCard.GameCategory)) 
+                gameCategories.push(scoreCard.GameCategory);
+        })
+        $scope.GameCategories = gameCategories;
+    })
+
+    function categoryScoreCards(gameCategory) {
+        return _.filter($scope.ScoreCards, function(x) { return x.GameCategory === gameCategory; });
+    }
+
+
 }])

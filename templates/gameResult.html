@@ -1,0 +1,9 @@
+﻿<h2>Game Result</h2>
+<div ng-repeat="gameCategory in GameCategories">
+    <h3>{{gameCategory.Name}}</h3>
+    <ol>
+        <li ng-repeat="scoreCard in categoryScoreCards(gameCategory) | orderBy:'-TotalScore'">
+            <a href="#/scorecard/{{scoreCard.Id}}">{{scoreCard.Player.Name}} (score: {{scoreCard.TotalScore}})</a>
+        </li>
+    </ol>
+</div>

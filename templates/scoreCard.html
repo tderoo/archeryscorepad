@@ -1,0 +1,94 @@
+﻿<h2>Score Card</h2>
+<table>
+    <tr>
+        <td>
+            <label for="naam">Naam:</label>
+        </td>
+        <td>
+            <input id="naam" type="text" ng-model="ScoreCard.Player.Name" required />
+        </td>
+    </tr>
+    <tr>
+        <td><label for="datum">Datum:</label></td>
+        <td><input type="date" id="datum" ng-model="ScoreCard.Player.Date" /></td>
+    </tr>
+    <tr>
+        <td>
+            <label for="wedstrijdKlasse">Wedstrijdklasse:</label>
+        </td>
+        <td>
+            <select id="wedstrijdKlasse" ng-model="ScoreCard.GameCategory" required>
+                <option ng-repeat="gameCategory in GameCategories" value="{{gameCategory}}">{{gameCategory.Name}}</option>
+            </select>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <label for="leeftijdsklasse">Leeftijdsklasse:</label>
+        </td>
+        <td>
+            <select id="leeftijdsklasse" ng-model="ScoreCard.Player.AgeGroup">
+                <option ng-repeat="ageGroup in AgeGroups" value="{{ageGroup}}">{{ageGroup}}</option>
+            </select>
+        </td>
+    </tr>
+    <tr>
+        <td><label for="boogtype">Boogtype:</label></td>
+        <td>
+            <select id="boogtype" ng-model="ScoreCard.Player.BowType">
+                <option ng-repeat="bowType in BowTypes" value="{{bowType}}">{{bowType}}</option>
+            </select>
+        </td>
+    </tr>
+    <tr>
+        <td><label for="afstand">Afstand:</label></td>
+        <td>
+            <select id="afstand" ng-model="ScoreCard.Player.Distance" required>
+                <option ng-repeat="distance in Distances" value="{{distance}}">{{distance}}</option>
+            </select>
+        </td>
+    </tr>
+</table>
+<hr>
+<table id="scorepad">
+    <thead>
+        <tr>
+            <td></td>
+            <td>1</td>
+            <td>2</td>
+            <td>3</td>
+            <td colspan="2">subtotalen</td>
+            <td>X</td>
+            <td></td>
+        </tr>
+    </thead>
+    <tbody>
+
+        <tr ng-repeat="serie in ScoreCard.Series">
+            <td>{{serie.No}}</td>
+            <td ng-repeat="score in serie.Serie">
+                <input type="text" ng-model="score.Score" ng-change="calcScore(ScoreCard)">
+            </td>
+            <td>
+                {{serie.SerieTotal}}
+            </td>
+            <td>
+                {{serie.SubTotal}}
+            </td>
+            <td>
+                {{serie.XCount}}
+            </td>
+            <td>
+                {{serie.ScoringMethod.Name}}
+            </td>
+        </tr>
+        <tr class="totals">
+            <td colspan="5"><label>Totaal:</label></td>
+            <td>{{ScoreCard.TotalScore}}</td>
+            <td>{{ScoreCard.XCount}}</td>
+        </tr>
+    </tbody>
+</table>
+<button ng-click="calcScore(ScoreCard,false)">Normale Score</button>
+<button ng-click="calcScore(ScoreCard,true)">Alternatieve Score</button>
+<button ng-click="saveScore(ScoreCard)">Invoeren</button>
