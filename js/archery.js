@@ -110,9 +110,10 @@ function($q) {
 
     var storageKey = 'Archery';
     var scoreCards = JSON.parse(window.localStorage[storageKey] || '[]');
+    _.each(scoreCards,function(x) { x.Player.Date = new Date(x.Player.Date);}); // convert to real dates
 
     function updateLocalStorage() {
-        window.localStorage[storageKey] = JSON.stringify(angular.toJson(scoreCards));
+        window.localStorage[storageKey] = angular.toJson(scoreCards);
     }
 
     //Get all stored scoreCards
@@ -123,7 +124,7 @@ function($q) {
     // Get the scorecard with a given Id
     function get(id) {
         return query().then(function(result) {
-            var scoreCard = _.find(result, function (x) { return x.Id === id });
+            var scoreCard = _.find(result, function(x) { return x.Id == id; });
             return $q.when(scoreCard);
         })
     }
@@ -132,7 +133,7 @@ function($q) {
     function save(scoreCard) {
         var index = _.findIndex(scoreCards, function (x) { return x.Id === scoreCard.Id; });
         if (index == -1) {
-            scoreCard.Id = _.max(scoreCards, function(x) { return x.Id; }) + 1; // generate Id
+            scoreCard.Id = generateId(); // generate unique Id
             scoreCards.push(scoreCard); // Add            
         }
         else scoreCards[index] = scoreCard; // Update
@@ -140,9 +141,15 @@ function($q) {
         return $q.when(scoreCard);
     }
 
+    function generateId() {
+        var last = _.last(scoreCards);
+        if (last && last.Id) return last.Id + 1;
+        return 1
+    }
+
     function remove(scoreCard) {
         var index = _.findIndex(scoreCards, function (x) { return x.Id === scoreCard.Id; });
-        if (index) {
+        if (index > -1) {
             scoreCards.splice(index, 1);
             updateLocalStorage();
         }
@@ -162,7 +169,9 @@ function ($q, scoringService, scoreCardRepository) {
         get: get,
         create: create,
         save: save,
-        calcScore: calcScore
+        remove: remove,
+        calcScore: calcScore,
+        calcScores: calcScores
     }
 
     /////////// implementation /////////////
@@ -176,7 +185,7 @@ function ($q, scoringService, scoreCardRepository) {
     }
 
     // Create new ScoreCard object
-    function create(maxSeries) {
+    function create() {
         var scoreCard = {
             Id: null,
             GameCategory: null,
@@ -192,7 +201,7 @@ function ($q, scoringService, scoreCardRepository) {
             XCount: null,
         }
         // Populate the Series in the scorecard 
-        for (var i = 0; i < (maxSeries || 10); i++) {
+        for (var i = 0; i < 10; i++) {
             scoreCard.Series.push({
                 No: (i + 1) * 3,
                 Serie: [{ Score: null }, { Score: null }, { Score: null }],
@@ -202,7 +211,7 @@ function ($q, scoringService, scoreCardRepository) {
             });
         }
             
-        return $q.when(scoreCard); // return a populated score card structure async
+        return $q.when(scoreCard).then(save); // return a populated score card structure async
     }
 
     // Recalculated the scores on the score card (optionally use alternative scoring methods)
@@ -238,11 +247,17 @@ function ($q, scoringService, scoreCardRepository) {
         scoreCard.TotalScore = totalScore;
         scoreCard.XCount = xCount;
     }
+    function calcScores(scoreCards, useAlternativeScoring) {
+        _.each(scoreCards, function(scoreCard) { calcScore(scoreCard, useAlternativeScoring); });
+    }
 
     function save(scoreCard) {
+        if (!scoreCard) return $q.when(); // empty promise 
         return scoreCardRepository.save(scoreCard);
-        //console.log(angular.toJson(scoreCard)) // todo implement actual scoring
-        //alert('Score saved (to implement)');
+    }
+
+    function remove(scoreCard) {
+        return scoreCardRepository.remove(scoreCard);
     }
 
     return service;
@@ -253,6 +268,11 @@ function ($q, scoringService, scoreCardRepository) {
 archeryModule.controller('scoreCardController', [
 '$scope', '$routeParams', '$q', 'scoreCardService', 'lookupService',
 function ($scope, $routeParams, $q, scoreCardService, lookupService) {
+
+    $scope.calcScore = scoreCardService.calcScore;
+    $scope.saveScore = saveScore;
+    $scope.removeCard = removeCard;
+    $scope.newCard = newCard;
 
     $q.all([lookupService.distances(),
             lookupService.ageGroups(),
@@ -271,15 +291,31 @@ function ($scope, $routeParams, $q, scoreCardService, lookupService) {
             .then(function(scoreCard) {
                 $scope.ScoreCard = scoreCard;
             });
-    } else {   
-        scoreCardService.create(10)
-            .then(function(scoreCard) {
-                $scope.ScoreCard = scoreCard;
-            })
+    } else {
+        newCard();
     }
 
-    $scope.calcScore = scoreCardService.calcScore;
-    $scope.saveScore = scoreCardService.save;
+    function newCard(scoreCard) {
+        if (scoreCard) scoreCardService.save(scoreCard);
+        scoreCardService.create()
+            .then(function(result) {
+                window.location.hash = '#/scorecard/' + result.Id;
+            });
+    };
+    function saveScore(scoreCard) {
+        scoreCardService.save(scoreCard)
+            .then(gotoResultPage);
+    }
+
+    function removeCard(scoreCard) {
+        scoreCardService.remove(scoreCard)
+            .then(gotoResultPage);
+    }
+
+    function gotoResultPage() {
+        window.location.hash = '#/';
+    }
+ 
 }])
 
 // ranking page controller which shows the winner scorecard for each
@@ -289,6 +325,9 @@ function ($scope, scoreCardService) {
     $scope.ScoreCards = [];
     $scope.GameCategories = [];
     $scope.categoryScoreCards = categoryScoreCards;
+    $scope.calcScores = scoreCardService.calcScores;
+    $scope.newCard = newCard;
+
 
     scoreCardService.query().then(function(scoreCards) {
         $scope.ScoreCards = scoreCards;
@@ -301,8 +340,12 @@ function ($scope, scoreCardService) {
     })
 
     function categoryScoreCards(gameCategory) {
-        return _.filter($scope.ScoreCards, function(x) { return x.GameCategory === gameCategory; });
+        console.log(gameCategory);
+        return _.filter($scope.ScoreCards, function(x) { return x.GameCategory == gameCategory; });
     }
 
+    function newCard() {
+        window.location.hash = '#/scorecard';
+    }
 
 }])

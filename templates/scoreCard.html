@@ -52,43 +52,46 @@
 <hr>
 <table id="scorepad">
     <thead>
-        <tr>
-            <td></td>
-            <td>1</td>
-            <td>2</td>
-            <td>3</td>
-            <td colspan="2">subtotalen</td>
-            <td>X</td>
-            <td></td>
-        </tr>
+    <tr>
+        <td></td>
+        <td>1</td>
+        <td>2</td>
+        <td>3</td>
+        <td colspan="2">subtotalen</td>
+        <td>X</td>
+        <td></td>
+    </tr>
     </thead>
     <tbody>
 
-        <tr ng-repeat="serie in ScoreCard.Series">
-            <td>{{serie.No}}</td>
-            <td ng-repeat="score in serie.Serie">
-                <input type="text" ng-model="score.Score" ng-change="calcScore(ScoreCard)">
-            </td>
-            <td>
-                {{serie.SerieTotal}}
-            </td>
-            <td>
-                {{serie.SubTotal}}
-            </td>
-            <td>
-                {{serie.XCount}}
-            </td>
-            <td>
-                {{serie.ScoringMethod.Name}}
-            </td>
-        </tr>
-        <tr class="totals">
-            <td colspan="5"><label>Totaal:</label></td>
-            <td>{{ScoreCard.TotalScore}}</td>
-            <td>{{ScoreCard.XCount}}</td>
-        </tr>
+    <tr ng-repeat="serie in ScoreCard.Series">
+        <td>{{serie.No}}</td>
+        <td ng-repeat="score in serie.Serie">
+            <input type="text" ng-model="score.Score" ng-change="calcScore(ScoreCard)">
+        </td>
+        <td>
+            {{serie.SerieTotal}}
+        </td>
+        <td>
+            {{serie.SubTotal}}
+        </td>
+        <td>
+            {{serie.XCount}}
+        </td>
+        <td>
+            {{serie.ScoringMethod.Name}}
+        </td>
+    </tr>
+    <tr class="totals">
+        <td colspan="5"><label>Totaal:</label></td>
+        <td>{{ScoreCard.TotalScore}}</td>
+        <td>{{ScoreCard.XCount}}</td>
+    </tr>
     </tbody>
 </table>
+<hr/>
 <button ng-click="calcScore(ScoreCard,false)">Normale Score</button>
 <button ng-click="calcScore(ScoreCard,true)">Alternatieve Score</button>
-<button ng-click="saveScore(ScoreCard)">Invoeren</button>
+<button ng-click="removeCard(ScoreCard)">Verwijderen</button>
+<button ng-click="saveScore(ScoreCard)">Opslaan</button>
+<button ng-click="newCard(ScoreCard)">Nieuwe</button>
