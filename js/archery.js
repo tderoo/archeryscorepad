@@ -135,6 +135,7 @@ function($q) {
 
     // Save (or update) the current ScoreCard
     function save(scoreCard) {
+        console.log(angular.toJson(scoreCard));
         var index = _.findIndex(scoreCards, function (x) { return x.Id === scoreCard.Id; });
         if (index == -1) {
             scoreCard.Id = generateId(); // generate unique Id
