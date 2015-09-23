@@ -1,13 +1,15 @@
-﻿<h2>Game Result</h2>
-<div ng-repeat="gameCategory in GameCategories">
-    <h3>{{gameCategory|| 'Niet ingedeeld' }}</h3>
+﻿<h2>Wedstrijd Uitslag</h2>
+<div ng-repeat="gameCategory in GameCategories | orderBy:'toString()'">
+    <h3>{{ gameCategory || 'Niet ingedeeld' }}</h3>
     <ol>
         <li ng-repeat="scoreCard in categoryScoreCards(gameCategory) | orderBy:'-TotalScore'">
-            <a href="#/scorecard/{{scoreCard.Id}}">{{scoreCard.Player.Name}} (score: {{scoreCard.TotalScore}})</a>
+            <a href="#/scorecard/{{scoreCard.Id}}">{{scoreCard.Player.Name}} ({{scoreCard.Player.BowType}}) &rArr; <b>{{scoreCard.TotalScore}} punten</b> ({{scoreCard.XCount}} kruisjes)</a>
         </li>
     </ol>
 </div>
 <hr/>
 <button ng-click="calcScores(ScoreCards,false)">Normale Score</button>
 <button ng-click="calcScores(ScoreCards,true)">Alternatieve Score</button>
-<button ng-click="newCard()">Invoeren</button>
+<button ng-click="newCard()">Kaart Invoeren</button>
+<hr/>
+<a download="Archery Scores.json" ng-href="{{ exportScores }}">Exporteer Resultaten</a>

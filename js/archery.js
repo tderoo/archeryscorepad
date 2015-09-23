@@ -21,6 +21,12 @@ function($routeProvider) {
     });
 }])
 
+// Make sure that we can generate text download files from within the app
+archeryModule.config(['$compileProvider',
+function ($compileProvider) {
+    $compileProvider.aHrefSanitizationWhitelist(/^\s*(https?|ftp|mailto|tel|file|blob):/);
+}]);
+
 // Scoring service can determine the numeric score for a given input 
 archeryModule.factory('scoringService', [
 function () {
@@ -90,10 +96,7 @@ function ($q) {
     }
 
     function gameCategories() {
-        return $q.when([
-            { Id: 1, Name: "Junioren (18m)" },
-            { Id: 2, Name: "Senioren (25m)" }
-        ]);
+        return $q.when(["Junioren (18m)", "Senioren (25m)"]);
     }
 
 }])
@@ -104,7 +107,8 @@ function($q) {
         query: query,
         get: get,
         save: save,
-        remove: remove
+        remove: remove,
+        saveAll: updateLocalStorage
     }
     /////////// implementation /////////////
 
@@ -223,7 +227,7 @@ function ($q, scoringService, scoreCardRepository) {
         _.each(scoreCard.Series, function (serie, index) {
             // Set serie total based on user inputs
             var scoringMethod = scoringService.scoringMethod(useAlternativeScoring ? index+1 : null);
-            serie.ScoringMethod = scoringMethod;
+            serie.ScoringMethod = scoringMethod.Name;
             serie.SerieTotal = _.reduce(serie.Serie, function(sum, score) {
                 return sum + scoringService.calcScore(score.Score, scoringMethod);
             }, 0);
@@ -247,8 +251,10 @@ function ($q, scoringService, scoreCardRepository) {
         scoreCard.TotalScore = totalScore;
         scoreCard.XCount = xCount;
     }
+
     function calcScores(scoreCards, useAlternativeScoring) {
-        _.each(scoreCards, function(scoreCard) { calcScore(scoreCard, useAlternativeScoring); });
+        _.each(scoreCards, function (scoreCard) { calcScore(scoreCard, useAlternativeScoring); });
+        scoreCardRepository.saveAll
     }
 
     function save(scoreCard) {
@@ -328,15 +334,15 @@ function ($scope, scoreCardService) {
     $scope.calcScores = scoreCardService.calcScores;
     $scope.newCard = newCard;
 
-
     scoreCardService.query().then(function(scoreCards) {
         $scope.ScoreCards = scoreCards;
-        var gameCategories = [];
+        var gameCategories = []; // Detect existing game categories
         _.each(scoreCards,function(scoreCard) {
             if (!_.contains(gameCategories, scoreCard.GameCategory)) 
                 gameCategories.push(scoreCard.GameCategory);
         })
         $scope.GameCategories = gameCategories;
+        exportScores(scoreCards);
     })
 
     function categoryScoreCards(gameCategory) {
@@ -348,4 +354,8 @@ function ($scope, scoreCardService) {
         window.location.hash = '#/scorecard';
     }
 
+    function exportScores(scoreCards) {
+        var blob = new Blob([angular.toJson(scoreCards)], {type:'text/plain'});
+        $scope.exportScores = (window.URL || window.webkitURL).createObjectURL(blob);
+    }
 }])

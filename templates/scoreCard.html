@@ -1,4 +1,4 @@
-﻿<h2>Score Card</h2>
+﻿<h2>Score Kaart</h2>
 <table>
     <tr>
         <td>
@@ -17,9 +17,7 @@
             <label for="wedstrijdKlasse">Wedstrijdklasse:</label>
         </td>
         <td>
-            <select id="wedstrijdKlasse" ng-model="ScoreCard.GameCategory" required>
-                <option ng-repeat="gameCategory in GameCategories" value="{{gameCategory}}">{{gameCategory.Name}}</option>
-            </select>
+            <select id="wedstrijdKlasse" ng-model="ScoreCard.GameCategory" required ng-options="gameCategory for gameCategory in GameCategories" ></select>
         </td>
     </tr>
     <tr>
@@ -27,25 +25,19 @@
             <label for="leeftijdsklasse">Leeftijdsklasse:</label>
         </td>
         <td>
-            <select id="leeftijdsklasse" ng-model="ScoreCard.Player.AgeGroup">
-                <option ng-repeat="ageGroup in AgeGroups" value="{{ageGroup}}">{{ageGroup}}</option>
-            </select>
+            <select id="leeftijdsklasse" ng-model="ScoreCard.Player.AgeGroup" ng-options="ageGroup for ageGroup in AgeGroups"></select>
         </td>
     </tr>
     <tr>
         <td><label for="boogtype">Boogtype:</label></td>
         <td>
-            <select id="boogtype" ng-model="ScoreCard.Player.BowType">
-                <option ng-repeat="bowType in BowTypes" value="{{bowType}}">{{bowType}}</option>
-            </select>
+            <select id="boogtype" ng-model="ScoreCard.Player.BowType" ng-options="bowType for bowType in BowTypes"></select>
         </td>
     </tr>
     <tr>
         <td><label for="afstand">Afstand:</label></td>
         <td>
-            <select id="afstand" ng-model="ScoreCard.Player.Distance" required>
-                <option ng-repeat="distance in Distances" value="{{distance}}">{{distance}}</option>
-            </select>
+            <select id="afstand" ng-model="ScoreCard.Player.Distance" required ng-options="distance for distance in Distances"></select>
         </td>
     </tr>
 </table>
@@ -79,7 +71,7 @@
             {{serie.XCount}}
         </td>
         <td>
-            {{serie.ScoringMethod.Name}}
+            {{serie.ScoringMethod}}
         </td>
     </tr>
     <tr class="totals">
@@ -92,6 +84,6 @@
 <hr/>
 <button ng-click="calcScore(ScoreCard,false)">Normale Score</button>
 <button ng-click="calcScore(ScoreCard,true)">Alternatieve Score</button>
+<button ng-click="newCard(ScoreCard)">Nieuwe Kaart</button>
 <button ng-click="removeCard(ScoreCard)">Verwijderen</button>
-<button ng-click="saveScore(ScoreCard)">Opslaan</button>
-<button ng-click="newCard(ScoreCard)">Nieuwe</button>
+<button ng-click="saveScore(ScoreCard)">Uitslag</button>
