@@ -332,7 +332,7 @@ function ($scope, scoreCardService) {
     $scope.ScoreCards = [];
     $scope.GameCategories = [];
     $scope.categoryScoreCards = categoryScoreCards;
-    $scope.calcScores = scoreCardService.calcScores;
+    $scope.calcScores = calcScores;
     $scope.newCard = newCard;
 
     scoreCardService.query().then(function(scoreCards) {
@@ -343,7 +343,7 @@ function ($scope, scoreCardService) {
                 gameCategories.push(scoreCard.GameCategory);
         })
         $scope.GameCategories = gameCategories;
-        exportScores(scoreCards);
+        generateExportUrl(scoreCards);
     })
 
     function categoryScoreCards(gameCategory) {
@@ -355,7 +355,13 @@ function ($scope, scoreCardService) {
         window.location.hash = '#/scorecard';
     }
 
-    function exportScores(scoreCards) {
+    function calcScores(scoreCards, useAlternativeScoring) {
+        $scope.ScoringMethod = useAlternativeScoring ? "Alternatieve Score" : "Normale Score";
+        scoreCardService.calcScores(scoreCards, useAlternativeScoring);
+        generateExportUrl(scoreCards)    
+    }
+
+    function generateExportUrl(scoreCards) {
         var blob = new Blob([angular.toJson(scoreCards)], {type:'text/plain'});
         $scope.exportScores = (window.URL || window.webkitURL).createObjectURL(blob);
     }
